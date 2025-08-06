@@ -12,15 +12,21 @@ using System.Threading.Tasks;
 
 namespace Persistence.UnitOfWork
 {
-    public class UnitOfWork(StoreDbContext context) : IUnitOfWork
+    public class UnitOfWork : IUnitOfWork
     {
-        
+        private readonly StoreDbContext _context;
         private ConcurrentDictionary<string,object> _repositories;
 
-        public IGenericRepository<TEntity, TKey> GenericRepository<TEntity, TKey>() where TEntity : BaseEntity<TKey>
-         => (IGenericRepository<TEntity, TKey>)_repositories.GetOrAdd(typeof(TEntity).Name, _ => new GenericRepository<TEntity, TKey>(context));
+        public UnitOfWork(StoreDbContext context)
+        {
+            _context = context;
+            //_repositories = new ConcurrentDictionary<string,object>();
+            _repositories = new ();
+        }
+        public IGenericRepository<TEntity, TKey> GetRepository<TEntity, TKey>() where TEntity : BaseEntity<TKey>
+         => (IGenericRepository<TEntity, TKey>)_repositories.GetOrAdd(typeof(TEntity).Name, _ => new GenericRepository<TEntity, TKey>(_context));
 
         public async Task SaveChangesAsync()
-         => await context.SaveChangesAsync();
+         => await _context.SaveChangesAsync();
     }
 }

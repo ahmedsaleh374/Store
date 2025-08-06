@@ -11,6 +11,6 @@ namespace Domain.Contracts
     {
         Task SaveChangesAsync();
 
-        IGenericRepository<TEntity,TKey>  GenericRepository<TEntity, TKey> () where TEntity : BaseEntity<TKey>;
+        IGenericRepository<TEntity,TKey>  GetRepository<TEntity, TKey> () where TEntity : BaseEntity<TKey>;
     }
 }

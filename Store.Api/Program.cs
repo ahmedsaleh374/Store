@@ -4,6 +4,10 @@ using Microsoft.EntityFrameworkCore;
 using Persistence;
 using Persistence.Data;
 using Persistence.UnitOfWork;
+using Services;
+using Services.Abstractions;
+using Services.MappedProfiles;
+using System.Reflection.Metadata;
 using System.Threading.Tasks;
 
 namespace Store.Api
@@ -27,6 +31,14 @@ namespace Store.Api
             
             builder.Services.AddScoped<IDbInitializer, DbInitializer>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
+            builder.Services.AddScoped<IServiceManager, ServiceManager>();
+            #region other ways for register auto mapper  
+            //builder.Services.AddAutoMapper(typeof(AssemblyReference).Assembly);
+            //builder.Services.AddAutoMapper(typeof(Services.ServiceManager).Assembly);
+            //builder.Services.AddAutoMapper(x =>x.AddProfile(new ProductProfile()));  
+            #endregion
+
+            builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
@@ -42,6 +54,7 @@ namespace Store.Api
                 app.UseSwagger();
                 app.UseSwaggerUI();
             }
+            app.UseStaticFiles();
 
             app.UseHttpsRedirection();
 
