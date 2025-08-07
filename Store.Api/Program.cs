@@ -8,6 +8,7 @@ using Services;
 using Services.Abstractions;
 using Services.MappedProfiles;
 using System.Reflection.Metadata;
+using System.Text.Json.Serialization;
 using System.Threading.Tasks;
 
 namespace Store.Api
@@ -20,7 +21,10 @@ namespace Store.Api
 
             // Add services to the container.
 
-            builder.Services.AddControllers();
+            builder.Services.AddControllers().AddJsonOptions(o => 
+            {
+                o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
+            });
 
              
             builder.Services.AddDbContext<StoreDbContext>(options =>
@@ -37,8 +41,8 @@ namespace Store.Api
             //builder.Services.AddAutoMapper(typeof(Services.ServiceManager).Assembly);
             //builder.Services.AddAutoMapper(x =>x.AddProfile(new ProductProfile()));  
             #endregion
-
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
+
 
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
