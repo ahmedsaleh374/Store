@@ -29,6 +29,9 @@ namespace Persistence.Repositories
         public void Delete(TEntity entity)
              => context.Set<TEntity>().Remove(entity);
 
+        public void Update(TEntity entity)
+             => context.Set<TEntity>().Update(entity);
+
         public async Task<IEnumerable<TEntity>> GetAllAsync(bool isTrackable = false)
         {
             if (isTrackable)
@@ -39,10 +42,6 @@ namespace Persistence.Repositories
 
         public async Task<TEntity?> GetAsync(Tkey id)
              => await context.Set<TEntity>().FindAsync(id);
-
-
-        public void Update(TEntity entity)
-             => context.Set<TEntity>().Update(entity);
 
         #region Specification pattern   
         public async Task<IEnumerable<TEntity>> GetAllAsync(Specification<TEntity> specification)

@@ -26,8 +26,8 @@ namespace Persistence
         {
             try
             {
-                //if(_context.Database.GetPendingMigrations().Any())
-                //    _context.Database.Migrate();
+                if (_context.Database.GetPendingMigrations().Any())
+                    await _context.Database.MigrateAsync();
 
                 if (!_context.productBrands.Any())
                 {
