@@ -1,6 +1,7 @@
 ﻿using AutoMapper;
 using Domain.Contracts;
 using Domain.Entities;
+using Domain.Exceptions;
 using Services.Abstractions;
 using Services.Specifications;
 using Shared;
@@ -13,12 +14,12 @@ using System.Threading.Tasks;
 
 namespace Services
 {
-    public class ProductService(IUnitOfWork unitOfWork,IMapper mapper) : IProductService
+    public class ProductService(IUnitOfWork unitOfWork, IMapper mapper) : IProductService
     {
         public async Task<IEnumerable<BrandResultDto>> GetAllBrandsAsync()
         {
             var Brands = await unitOfWork.GetRepository<ProductBrand, int>().GetAllAsync();
-            var mappedBrands = mapper.Map< IEnumerable<BrandResultDto>>(Brands);
+            var mappedBrands = mapper.Map<IEnumerable<BrandResultDto>>(Brands);
             return mappedBrands;
         }
 
@@ -37,17 +38,19 @@ namespace Services
             var Products = await unitOfWork.GetRepository<Product, int>().GetAllAsync(specs);
             var TotalCount = await unitOfWork.GetRepository<Product, int>().CountAsync(Countspecs);
             var mappedProducts = mapper.Map<IEnumerable<ProductResultDto>>(Products);
-            return new PaginatedResult<ProductResultDto>(specifications.PageIndex,specifications.PageSize, TotalCount, mappedProducts);
+            return new PaginatedResult<ProductResultDto>(specifications.PageIndex, specifications.PageSize, TotalCount
+                , Products is null ? throw new ProductNotFoundException(0) : mappedProducts);
         }
 
         public async Task<ProductResultDto> GetProductByIdAsync(int id)
         {
             // specification pattern 
-            var specs =new ProductWithFilterSpecification(id);
+            var specs = new ProductWithFilterSpecification(id);
 
             var Product = await unitOfWork.GetRepository<Product, int>().GetAsync(specs);
             var mappedProduct = mapper.Map<ProductResultDto>(Product);
-            return mappedProduct;
+            //return mappedProduct;
+            return Product is null ? throw new ProductNotFoundException(id) : mappedProduct;
         }
     }
 }

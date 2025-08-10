@@ -1,12 +1,17 @@
 
 using Domain.Contracts;
+using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Persistence;
 using Persistence.Data;
+using Persistence.Repositories;
 using Persistence.UnitOfWork;
 using Services;
 using Services.Abstractions;
 using Services.MappedProfiles;
+using StackExchange.Redis;
+using Store.Api.Factories;
+using Store.Api.Middlewares;
 using System.Reflection.Metadata;
 using System.Text.Json.Serialization;
 using System.Threading.Tasks;
@@ -21,18 +26,23 @@ namespace Store.Api
 
             // Add services to the container.
 
-            builder.Services.AddControllers().AddJsonOptions(o => 
+            builder.Services.AddControllers().AddJsonOptions(o =>
             {
                 o.JsonSerializerOptions.Converters.Add(new JsonStringEnumConverter());
             });
 
-             
+
             builder.Services.AddDbContext<StoreDbContext>(options =>
             {
                 options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultSQLConnection"));
             });
 
-            
+            builder.Services.AddSingleton<IConnectionMultiplexer>
+                (
+                    _ => ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis"))
+                );
+
+            builder.Services.AddScoped<IBasketRepository, BasketRepository>();
             builder.Services.AddScoped<IDbInitializer, DbInitializer>();
             builder.Services.AddScoped<IUnitOfWork, UnitOfWork>();
             builder.Services.AddScoped<IServiceManager, ServiceManager>();
@@ -44,6 +54,12 @@ namespace Store.Api
             builder.Services.AddAutoMapper(AppDomain.CurrentDomain.GetAssemblies());
 
 
+            builder.Services.Configure<ApiBehaviorOptions>(o =>
+            {
+                o.InvalidModelStateResponseFactory = ApiResponseFactory.CustomValidationErrorResponse;
+            });
+
+
             // Learn more about configuring Swagger/OpenAPI at https://aka.ms/aspnetcore/swashbuckle
             builder.Services.AddEndpointsApiExplorer();
             builder.Services.AddSwaggerGen();
@@ -51,6 +67,7 @@ namespace Store.Api
             var app = builder.Build();
 
             await SeedDbAsync(app);
+            app.UseMiddleware<GlobalErrorHandlingMiddleware>();
 
             // Configure the HTTP request pipeline.
             if (app.Environment.IsDevelopment())
@@ -76,7 +93,7 @@ namespace Store.Api
             var dbInitializer = scope.ServiceProvider.GetRequiredService<IDbInitializer>();
 
             await dbInitializer.InitializeAsync();
-        } 
+        }
         #endregion
     }
 }
