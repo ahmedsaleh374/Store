@@ -1,9 +1,12 @@
 
 using Domain.Contracts;
+using Domain.Entities.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
 using Persistence;
 using Persistence.Data;
+using Persistence.Identity;
 using Persistence.Repositories;
 using Persistence.UnitOfWork;
 using Services;
@@ -32,15 +35,29 @@ namespace Store.Api
             });
 
 
+            #region DbContext 
             builder.Services.AddDbContext<StoreDbContext>(options =>
-            {
-                options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultSQLConnection"));
-            });
+                {
+                    options.UseSqlServer(builder.Configuration.GetConnectionString("DefaultSQLConnection"));
+                }); 
+            #endregion
 
+            #region IdentityDbContext  
+            builder.Services.AddDbContext<StoreIdentityDbContext>(options =>
+                {
+                    options.UseSqlServer(builder.Configuration.GetConnectionString("IdentitySQLConnection"));
+                });
+
+            builder.Services.AddIdentity<User, IdentityRole>()
+                .AddEntityFrameworkStores<StoreIdentityDbContext>();
+            #endregion
+
+            #region Redis 
             builder.Services.AddSingleton<IConnectionMultiplexer>
-                (
-                    _ => ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis"))
-                );
+                    (
+                        _ => ConnectionMultiplexer.Connect(builder.Configuration.GetConnectionString("Redis"))
+                    ); 
+            #endregion
 
             builder.Services.AddScoped<IBasketRepository, BasketRepository>();
             builder.Services.AddScoped<IDbInitializer, DbInitializer>();
@@ -78,6 +95,8 @@ namespace Store.Api
             app.UseStaticFiles();
 
             app.UseHttpsRedirection();
+
+            app.UseAuthentication();
 
             app.UseAuthorization();
 
