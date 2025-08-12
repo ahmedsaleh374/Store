@@ -1,8 +1,11 @@
 ﻿using Domain.Contracts;
 using Domain.Entities;
+using Domain.Entities.Identity;
+using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Persistence.Data;
+using Persistence.Identity;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -15,11 +18,24 @@ namespace Persistence
     public class DbInitializer : IDbInitializer
     {
         private readonly StoreDbContext _context;
+        private readonly StoreIdentityDbContext _identityDbContext;
+        private readonly UserManager<User> _userManager;
+        private readonly RoleManager<IdentityRole> _roleManager;
         private readonly ILogger<DbInitializer> _logger;
 
-        public DbInitializer(StoreDbContext context, ILogger<DbInitializer> logger)
+        public DbInitializer
+            (
+                 StoreDbContext context
+                 , StoreIdentityDbContext identityDbContext
+                 , UserManager<User> userManager
+                 , RoleManager<IdentityRole> roleManager
+                 , ILogger<DbInitializer> logger
+            )
         {
             _context = context;
+            _identityDbContext = identityDbContext;
+            _userManager = userManager;
+            _roleManager = roleManager;
             _logger = logger;
         }
         public async Task InitializeAsync()
@@ -71,5 +87,52 @@ namespace Persistence
 
             }
         }
+
+        public async Task InitializeIdentityAsync()
+        {
+            try
+            {
+                if (_identityDbContext.Database.GetPendingMigrations().Any())
+                    await _identityDbContext.Database.MigrateAsync();
+
+                if (!_roleManager.Roles.Any())
+                {
+                    await _roleManager.CreateAsync(new IdentityRole("Admin"));
+                    await _roleManager.CreateAsync(new IdentityRole("SuperAdmin"));
+                }
+
+                if (!_userManager.Users.Any())
+                {
+                    var superAdminUser = new User
+                    {
+                        DisplayName = "Super Admin",
+                        UserName = "SuperAdmin",
+                        Email = "SuperAdmin@gmail.com",
+                        PhoneNumber = "1234567890",
+                    };
+
+                    var AdminUser = new User
+                    {
+                        DisplayName = "Admin",
+                        UserName = "Admin",
+                        Email = "Admin@gmail.com",
+                        PhoneNumber = "55442151410",
+                    };
+
+                    //create
+                    await _userManager.CreateAsync(superAdminUser, "Ahmed123 ");
+                    await _userManager.CreateAsync(AdminUser, "Ahmed123 ");
+                    // add role
+                    await _userManager.AddToRoleAsync(superAdminUser, "SuperAdmin");
+                    await _userManager.AddToRoleAsync(AdminUser, "Admin");
+                }
+            }
+            catch (Exception ex)
+            {
+
+                _logger.LogError(ex.Message);
+            }
+        }
     }
 }
+

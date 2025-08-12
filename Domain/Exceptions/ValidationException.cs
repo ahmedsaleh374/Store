@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace Domain.Exceptions
 {
-    public abstract class ValidationException : Exception
+    public sealed class ValidationException : Exception
     {
         public IEnumerable<string> Errors { get; set; }
         public ValidationException(IEnumerable<string> errors) : base("VALIDATION FAILED!!")
