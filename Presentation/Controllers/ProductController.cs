@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Mvc;
+﻿using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Mvc;
 using Services.Abstractions;
 using Shared;
 using Shared.ProductDtos;
@@ -11,6 +12,7 @@ using System.Threading.Tasks;
 
 namespace Presentation.Controllers
 {
+    [Authorize]
     [ProducesResponseType(typeof(ProductResultDto), (int)HttpStatusCode.OK)]
     public class ProductController(IServiceManager serviceManager) : ApiController
     {

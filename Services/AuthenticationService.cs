@@ -2,6 +2,7 @@
 using Domain.Entities.Identity;
 using Domain.Exceptions;
 using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -24,6 +25,7 @@ namespace Services
         /*,IConfiguration configuration*/
         , IOptions<JwtOptions> options) : IAuthenticationService
     {
+
         public async Task<UserResultDto> LoginAsync(LoginDto loginDto)
         {
             var user = await userManager.FindByEmailAsync(loginDto.Email);
@@ -79,13 +81,21 @@ namespace Services
 
             //payload 
             //1 - create claims 
-            var userClaims = await userManager.GetClaimsAsync(user);
+            //var userClaims = await userManager.GetClaimsAsync(user);
+            //var claims = new List<Claim>();
+            //if (userClaims is null)
+            //{
+            //    claims.Add(new Claim(ClaimTypes.Name, user.UserName));
+            //    claims.Add(new Claim(ClaimTypes.Email, user.Email));
+            //}
+
+
             var claims = new List<Claim>();
-            if (userClaims is null)
-            {
-                claims.Add(new Claim(ClaimTypes.Name, user.UserName));
-                claims.Add(new Claim(ClaimTypes.Email, user.Email));
-            }
+
+            claims.Add(new Claim(ClaimTypes.Name, user.UserName));
+            claims.Add(new Claim(ClaimTypes.Email, user.Email));
+            claims.Add(new Claim(JwtRegisteredClaimNames.Jti,Guid.NewGuid().ToString()));
+
             var roles = await userManager.GetRolesAsync(user);
             foreach (var role in roles)
             {
@@ -110,5 +120,68 @@ namespace Services
 
             return new JwtSecurityTokenHandler().WriteToken(token);
         }
+
+
+        public async Task<UserResultDto> GetUserByEmailAsync(string email)
+        {
+            var user = await userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                throw new UserNotFoundException(email);
+            }
+
+            var userDto = new UserResultDto
+                (
+                   user.DisplayName,
+                   user.Email,
+                   await CreateTokenAsync(user)
+                );
+            return userDto;
+        }
+
+        public async Task<bool> IsEmailExists(string email)
+        {
+            var user = await userManager.FindByEmailAsync(email);
+            if (user == null)
+            {
+                throw new UserNotFoundException(email);
+            }
+
+            return user.Email != null;
+        }
+
+        public async Task<AddressDto> GetUserAddressAsync(string email)
+        {
+            var user = await userManager.Users.Include(u => u.Address)
+                .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user is null)
+            {
+                throw new UserNotFoundException(email);
+            }
+
+            var addressDto = mapper.Map<AddressDto>(user.Address);
+            return addressDto;
+        }
+
+        public async Task<AddressDto> UpdateUserAddressAsync(string email, AddressDto addressDto)
+        {
+            var user = await userManager.Users.Include(u => u.Address)
+                 .FirstOrDefaultAsync(u => u.Email == email);
+
+            if (user is null)
+            {
+                throw new UserNotFoundException(email);
+            }
+
+            var mappedAddress = mapper.Map<Address>(addressDto);
+            user.Address = mappedAddress;
+
+            await userManager.UpdateAsync(user);
+
+            return addressDto;
+        }
+
+
     }
 }

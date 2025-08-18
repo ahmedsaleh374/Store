@@ -1,13 +1,17 @@
 ﻿using Domain.Contracts;
 using Domain.Entities.Identity;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.IdentityModel.Tokens;
 using Persistence;
 using Persistence.Data;
 using Persistence.Identity;
 using Persistence.Repositories;
 using Persistence.UnitOfWork;
+using Shared.IdentityDtos;
 using StackExchange.Redis;
+using System.Text;
 using System.Text.Json.Serialization;
 
 namespace Store.Api.Extensions
@@ -40,9 +44,38 @@ namespace Store.Api.Extensions
                     );
             #endregion
 
+
+            #region JWT configurations 
+            var jwtConfig = configuration.GetSection("JwtOptions").Get<JwtOptions>();
+            //var jwtConfig = services.Configure<JwtOptions>(configuration.GetSection("JwtOptions"));
+
+            // changing schema 
+            services.AddAuthentication(o =>
+            {
+                o.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+                o.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+            }).AddJwtBearer(o =>
+            {
+                o.TokenValidationParameters = new TokenValidationParameters
+                {
+                    ValidateIssuer = true,
+                    ValidateAudience = true,
+                    ValidateLifetime = true,
+                    ValidateIssuerSigningKey = true,
+
+                    ValidIssuer = jwtConfig.Issuer,
+                    ValidAudience = jwtConfig.Audience,
+                    IssuerSigningKey = new SymmetricSecurityKey(Encoding.UTF8.GetBytes(jwtConfig.SecurityKey))
+                };
+            });
+            #endregion
+
+
             services.AddScoped<IBasketRepository, BasketRepository>();
             services.AddScoped<IDbInitializer, DbInitializer>();
             services.AddScoped<IUnitOfWork, UnitOfWork>();
+
+            
 
 
             return services;
